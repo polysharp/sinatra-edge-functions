@@ -1,0 +1,6 @@
+.DS_Store
+.vscode
+
+# Supabase
+**/supabase/.branches
+**/supabase/.temp
