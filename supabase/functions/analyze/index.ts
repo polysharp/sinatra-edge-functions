@@ -1,10 +1,13 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+
 import { z } from "https://deno.land/x/zod@v3.23.8/mod.ts";
 
 const requestSchema = z.object({
   url: z.string().url("Invalid URL format."),
-  apiKey: z.string().nonempty("API key is required."),
-  categories: z.array(z.string()).default([
+  apiKey: z.string().min(1, "API key is required."),
+  categories: z.array(
+    z.enum(["performance", "accessibility", "best-practices", "seo"]),
+  ).default([
     "performance",
     "accessibility",
     "best-practices",
@@ -42,8 +45,16 @@ async function analyzePage(
     }
 
     const data = await response.json();
+    const categoriesRes = data?.lighthouseResult?.categories;
+    if (categoriesRes) {
+      for (const categoryRes in categoriesRes) {
+        if (categoriesRes[categoryRes].auditRefs) {
+          delete categoriesRes[categoryRes].auditRefs;
+        }
+      }
+    }
 
-    return data;
+    return categoriesRes;
   } catch (error) {
     console.error("Error during PageSpeed analysis:", error);
     throw error;
@@ -68,7 +79,10 @@ Deno.serve(async (req) => {
     console.error("Error:", error);
 
     return new Response(
-      JSON.stringify({ error: error }, null, 2),
+      JSON.stringify({
+        error: "Internal Server Error",
+        message: "An unexpected error occured",
+      }),
       { status: 400, headers: { "Content-Type": "application/json" } },
     );
   }
