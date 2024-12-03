@@ -46,15 +46,17 @@ async function analyzePage(
 
     const data = await response.json();
     const categoriesRes = data?.lighthouseResult?.categories;
+
     if (categoriesRes) {
-      for (const categoryRes in categoriesRes) {
-        if (categoriesRes[categoryRes].auditRefs) {
-          delete categoriesRes[categoryRes].auditRefs;
-        }
-      }
+      return {
+        "performance": categoriesRes.performance.score * 100,
+        "accessibility": categoriesRes.accessibility.score * 100,
+        "bestPractices": categoriesRes["best-practices"].score * 100,
+        "seo": categoriesRes.seo.score * 100,
+      };
     }
 
-    return categoriesRes;
+    throw new Error("Invalid response from PageSpeed API");
   } catch (error) {
     console.error("Error during PageSpeed analysis:", error);
     throw error;
@@ -83,7 +85,7 @@ Deno.serve(async (req) => {
         error: "Internal Server Error",
         message: "An unexpected error occured",
       }),
-      { status: 400, headers: { "Content-Type": "application/json" } },
+      { status: 500, headers: { "Content-Type": "application/json" } },
     );
   }
 });
